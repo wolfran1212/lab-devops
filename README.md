@@ -147,13 +147,13 @@ gcloud iam workload-identity-pools create "github-pool" --location="global" --di
 **Crear el Provider:**
 
 ```cmd
-gcloud iam workload-identity-pools providers create-oidc "github-provider" --location="global" --workload-identity-pool="github-pool" --display-name="GitHub Provider" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" --attribute-condition="assertion.repository_owner=='mafeopa'" --issuer-uri="https://token.actions.githubusercontent.com"
+gcloud iam workload-identity-pools providers create-oidc "github-provider" --location="global" --workload-identity-pool="github-pool" --display-name="GitHub Provider" --attribute-mapping="google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" --attribute-condition="assertion.repository_owner=='wolfran1212'" --issuer-uri="https://token.actions.githubusercontent.com"
 ```
 
 **Vincular el Service Account al pool:**
 
 ```cmd
-gcloud iam service-accounts add-iam-policy-binding github-actions-sa@banded-water-506101-p8.iam.gserviceaccount.com --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/1014662180227/locations/global/workloadIdentityPools/github-pool/attribute.repository_owner/mafeopa"
+gcloud iam service-accounts add-iam-policy-binding github-actions-sa@banded-water-506101-p8.iam.gserviceaccount.com --role="roles/iam.workloadIdentityUser" --member="principalSet://iam.googleapis.com/projects/814108920481/locations/global/workloadIdentityPools/github-pool/attribute.repository_owner/wolfran1212"
 ```
 
 **Obtener el nombre completo del provider** (necesario como secreto en GitHub):
@@ -165,7 +165,7 @@ gcloud iam workload-identity-pools providers describe github-provider --location
 El valor será algo como:
 
 ```
-projects/622078306811/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+projects/814108920481/locations/global/workloadIdentityPools/github-pool/providers/github-provider
 ```
 
 ---
@@ -177,7 +177,7 @@ Ve a tu repositorio → **Settings → Secrets and variables → Actions → New
 | Nombre                | Valor                                                                                                |
 | --------------------- | ---------------------------------------------------------------------------------------------------- |
 | `GCP_PROJECT_ID`      | `banded-water-506101-p8`                                                                             |
-| `WIF_PROVIDER`        | `projects/622078306811/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
+| `WIF_PROVIDER`        | `projects/814108920481/locations/global/workloadIdentityPools/github-pool/providers/github-provider` |
 | `WIF_SERVICE_ACCOUNT` | `github-actions-sa@banded-water-506101-p8.iam.gserviceaccount.com`                                   |
 
 ---
@@ -341,13 +341,13 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 
 ## Brechas de seguridad conocidas
 
-| #   | Brecha                                          | Riesgo                                      | Solución recomendada                                                               |
-| --- | ----------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------- |
-| 1   | Pool abierto a toda la cuenta GitHub            | Cualquier repo puede usar las credenciales  | Restringir a un repo específico con `assertion.repository=='mafeopa/cicdtraining'` |
-| 2   | Servicio público sin autenticación (`allUsers`) | Abuso de recursos y costos inesperados      | Agregar rate limiting o usar Cloud Armor                                           |
-| 3   | Service Account con `roles/run.admin`           | Permisos excesivos sobre Cloud Run          | Cambiar a `roles/run.developer`                                                    |
-| 4   | Sin escaneo de vulnerabilidades en la imagen    | Imágenes con CVEs desplegadas en producción | Agregar `google-github-actions/scan-docker-image` al workflow                      |
-| 5   | Sin protección en rama `main`                   | Cualquier push va directo a producción      | Habilitar branch protection con Pull Request obligatorio                           |
+| #   | Brecha                                          | Riesgo                                      | Solución recomendada                                                                   |
+| --- | ----------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1   | Pool abierto a toda la cuenta GitHub            | Cualquier repo puede usar las credenciales  | Restringir a un repo específico con `assertion.repository=='wolfran1212/cicdtraining'` |
+| 2   | Servicio público sin autenticación (`allUsers`) | Abuso de recursos y costos inesperados      | Agregar rate limiting o usar Cloud Armor                                               |
+| 3   | Service Account con `roles/run.admin`           | Permisos excesivos sobre Cloud Run          | Cambiar a `roles/run.developer`                                                        |
+| 4   | Sin escaneo de vulnerabilidades en la imagen    | Imágenes con CVEs desplegadas en producción | Agregar `google-github-actions/scan-docker-image` al workflow                          |
+| 5   | Sin protección en rama `main`                   | Cualquier push va directo a producción      | Habilitar branch protection con Pull Request obligatorio                               |
 
 ---
 
@@ -361,4 +361,4 @@ gcloud logging read "resource.type=cloud_run_revision AND resource.labels.servic
 
 ---
 
-_Universidad de Boyacá • 2026 • github.com/mafeopa_
+_Universidad de Boyacá • 2026 • github.com/wolfran1212_
