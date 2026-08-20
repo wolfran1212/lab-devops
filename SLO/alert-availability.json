@@ -1,0 +1,23 @@
+{
+  "displayName": "SLO Disponibilidad < 99.5%",
+  "conditions": [{
+    "displayName": "Tasa de éxito baja",
+    "conditionThreshold": {
+      "filter": "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" resource.label.service_name=\"mi-app\" metric.label.response_code_class=\"2xx\"",
+      "aggregations": [{
+        "alignmentPeriod": "60s",
+        "perSeriesAligner": "ALIGN_RATE",
+        "crossSeriesReducer": "REDUCE_SUM"
+      }],
+      "comparison": "COMPARISON_LT",
+      "thresholdValue": 0.995,
+      "duration": "60s"
+    }
+  }],
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": []
+}

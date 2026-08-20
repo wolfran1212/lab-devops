@@ -1,0 +1,23 @@
+{
+  "displayName": "SLO Tasa de Errores > 0.5%",
+  "conditions": [{
+    "displayName": "5xx rate alto",
+    "conditionThreshold": {
+      "filter": "metric.type=\"run.googleapis.com/request_count\" resource.type=\"cloud_run_revision\" resource.label.service_name=\"mi-app\" metric.label.response_code_class=\"5xx\"",
+      "aggregations": [{
+        "alignmentPeriod": "60s",
+        "perSeriesAligner": "ALIGN_RATE",
+        "crossSeriesReducer": "REDUCE_SUM"
+      }],
+      "comparison": "COMPARISON_GT",
+      "thresholdValue": 0.005,
+      "duration": "60s"
+    }
+  }],
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": []
+}

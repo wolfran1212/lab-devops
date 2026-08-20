@@ -1,0 +1,23 @@
+{
+  "displayName": "SLO Latencia p95 > 500ms",
+  "conditions": [{
+    "displayName": "Latencia alta",
+    "conditionThreshold": {
+      "filter": "metric.type=\"run.googleapis.com/request_latencies\" resource.type=\"cloud_run_revision\" resource.label.service_name=\"mi-app\"",
+      "aggregations": [{
+        "alignmentPeriod": "60s",
+        "perSeriesAligner": "ALIGN_DELTA",
+        "crossSeriesReducer": "REDUCE_PERCENTILE_95"
+      }],
+      "comparison": "COMPARISON_GT",
+      "thresholdValue": 500,
+      "duration": "60s"
+    }
+  }],
+  "alertStrategy": {
+    "autoClose": "604800s"
+  },
+  "combiner": "OR",
+  "enabled": true,
+  "notificationChannels": []
+}

@@ -1,0 +1,203 @@
+═══════════════════════════════════════════════════════════════════════
+  LABORATORIO SLI/SLO — CLOUD MONITORING + ALERTAS
+· Maestría en Arquitectura de Software
+
+═══════════════════════════════════════════════════════════════════════
+
+ANTES DE EMPEZAR
+─────────────────
+  • Tener gcloud CLI instalado y autenticado:
+      gcloud auth login
+      gcloud config set project cicdtraining-498421
+
+  • Estar en la carpeta donde están los archivos JSON del lab:
+      dashboard.json
+      alert-errors.json
+      alert-latency.json
+      alert-availability.json
+
+  • App desplegada y respondiendo:
+      https://mi-app-622078306811.us-central1.run.app/
+
+  • IDs fijos del proyecto (no cambian entre grupos):
+      Project Number : 622078306811
+      SA             : github-actions-sa@cicdtraining-498421.iam.gserviceaccount.com
+      WIF Provider   : projects/622078306811/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+      Channel ID     : 12416972205859688771
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 1 — CREAR DASHBOARD
+═══════════════════════════════════════════════════════════════════════
+
+gcloud monitoring dashboards create \
+  --config-from-file=dashboard.json \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: Crea el dashboard con 4 widgets en Cloud Monitoring:
+           error rate · latencia p95 · disponibilidad · instancias activas.
+           Verlo en: console.cloud.google.com → Monitoring → Dashboards
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 2 — CREAR LAS 3 POLÍTICAS DE ALERTA
+═══════════════════════════════════════════════════════════════════════
+
+  ── Alerta 1: Error Rate > 0.5% por 2 minutos ──
+gcloud monitoring policies create \
+  --policy-from-file=alert-errors.json \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: ID resultante → 11182487088173636770
+           Condición: tasa de errores HTTP supera 0.5% sostenido 2 min.
+           SLO asociado: Availability ≥ 99.5%
+
+  ── Alerta 2: Latencia p95 > 500ms por 2 minutos ──
+gcloud monitoring policies create \
+  --policy-from-file=alert-latency.json \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: ID resultante → 6022321838366663113
+           Condición: percentil 95 de latencia supera 500ms sostenido 2 min.
+           SLO asociado: Latencia p95 < 500ms
+
+  ── Alerta 3: Availability < 99.5% por 5 minutos ──
+gcloud monitoring policies create \
+  --policy-from-file=alert-availability.json \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: ID resultante → 6022321838366666603
+           Condición: porcentaje de respuestas 2xx cae bajo 99.5% por 5 min.
+           SLO asociado: Error rate ≤ 0.5%
+
+  ── Verificar las 3 alertas creadas ──
+gcloud monitoring policies list \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: Confirmar que las 3 aparecen con enabled: true
+           Si alguna falta, repetir el comando create correspondiente.
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 3 — CREAR CANAL DE NOTIFICACIÓN (EMAIL)
+═══════════════════════════════════════════════════════════════════════
+
+gcloud beta monitoring channels create \
+  --display-name="Email Maria" \
+  --type=email \
+  --channel-labels=email_address=mfochoa@uniboyaca.edu.co \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: El ID resultante fue → 12416972205859688771
+           Para estudiantes: cambiar el email por el suyo.
+           El remitente del correo será: alerting-noreply@google.com
+           IMPORTANTE: revisar carpeta SPAM la primera vez.
+
+  ── Verificar el canal creado ──
+gcloud alpha monitoring channels list \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: Confirmar que enabled: true y que el email es correcto.
+           Para enviar correo de prueba al canal:
+           gcloud alpha monitoring channels verify CHANNEL_ID \
+             --project=cicdtraining-498421
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 4 — VINCULAR ALERTAS AL CANAL DE EMAIL
+═══════════════════════════════════════════════════════════════════════
+
+  ── Vincular alerta de errores ──
+gcloud monitoring policies update 11182487088173636770 \
+  --set-notification-channels=12416972205859688771 \
+  --project=cicdtraining-498421
+
+  ── Vincular alerta de latencia ──
+gcloud monitoring policies update 6022321838366663113 \
+  --set-notification-channels=12416972205859688771 \
+  --project=cicdtraining-498421
+
+  ── Vincular alerta de availability ──
+gcloud monitoring policies update 6022321838366666603 \
+  --set-notification-channels=12416972205859688771 \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: Sin este paso las alertas se disparan pero nadie recibe el email.
+           Es el error más común — siempre ejecutar los 3 update.
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 5 — DISPARAR LAS ALERTAS (ROMPER LOS SLOs)
+═══════════════════════════════════════════════════════════════════════
+
+  ── Opción A: Desde CMD (dos ventanas simultáneas) ──
+
+  Ventana 1 — forzar errores 500:
+    for /L %i in (1,1,500) do curl -s "https://mi-app-622078306811.us-central1.run.app/api/work?ms=200&fail=true" > nul
+
+  Ventana 2 — forzar latencia alta:
+    for /L %i in (1,1,200) do curl -s "https://mi-app-622078306811.us-central1.run.app/api/work?ms=800" > nul
+
+  ── Opción B: Desde consola del navegador (DevTools → Console) ──
+
+  // Errores masivos simultáneos
+  for(let i=0; i<50; i++){
+    fetch('https://mi-app-622078306811.us-central1.run.app/api/work?ms=200&fail=true')
+      .then(r => console.log('status:', r.status))
+  }
+
+  // Latencia alta simultánea
+  for(let i=0; i<20; i++){
+    fetch('https://mi-app-622078306811.us-central1.run.app/api/work?ms=900')
+      .then(r => console.log('ok:', r.status))
+  }
+
+  ── Opción C: k6 (carga sostenida completa) ──
+    k6 run load-test.js
+
+  ✎ NOTA: Mantener la carga AL MENOS 3 minutos continuos.
+           Las alertas tienen ventana de evaluación de 2 min.
+           El email llega 1-2 min después de que el incidente se registra.
+
+═══════════════════════════════════════════════════════════════════════
+  PASO 6 — VERIFICAR INCIDENTES
+═══════════════════════════════════════════════════════════════════════
+
+gcloud alpha monitoring incidents list \
+  --project=cicdtraining-498421
+
+  ✎ NOTA: Si aparecen incidentes pero no llega el email → SPAM
+           Si no aparecen incidentes → la carga no fue suficiente
+             o no se sostuvo los 2 minutos mínimos.
+
+═══════════════════════════════════════════════════════════════════════
+  REFERENCIA RÁPIDA — SLOs DEFINIDOS
+═══════════════════════════════════════════════════════════════════════
+
+  SLI 1 — Disponibilidad
+    Definición : requests_2xx / requests_total
+    SLO        : ≥ 99.5%
+    Alerta ID  : 11182487088173636770
+
+  SLI 2 — Latencia
+    Definición : percentil 95 del tiempo de respuesta
+    SLO        : p95 < 500ms
+    Alerta ID  : 6022321838366663113
+
+  SLI 3 — Error Rate
+    Definición : requests_5xx / requests_total
+    SLO        : ≤ 0.5%
+    Alerta ID  : 6022321838366666603
+
+═══════════════════════════════════════════════════════════════════════
+  ENDPOINTS DE LA APP PARA EL LAB
+═══════════════════════════════════════════════════════════════════════
+
+  BASE URL: https://mi-app-622078306811.us-central1.run.app
+
+  GET /                              → health check (status + versión)
+  GET /api/work?ms=200&fail=false    → respuesta normal con latencia 200ms
+  GET /api/work?ms=800&fail=false    → latencia alta 800ms (rompe p95)
+  GET /api/work?ms=200&fail=true     → fuerza error 500 (rompe error rate)
+  GET /api/stress?connections=100    → carga concurrente interna
+  GET /metrics                       → métricas en formato Prometheus
+
+═══════════════════════════════════════════════════════════════════════
+  Universidad de la Sabana· github.com/mafeopa · 2026
+═══════════════════════════════════════════════════════════════════════
+ 
