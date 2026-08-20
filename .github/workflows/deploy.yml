@@ -4,12 +4,11 @@ on:
   push:
     branches: [main]
 
-
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   REGION: us-central1
-  SERVICE_NAME: mi-app
-  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/mi-app/mi-app
+  SERVICE_NAME: lab-devops
+  IMAGE: us-central1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/lab-devops/lab-devops
 
 jobs:
   deploy:
@@ -29,7 +28,7 @@ jobs:
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
       - name: Configurar gcloud
         uses: google-github-actions/setup-gcloud@v2
-        
+
       - name: Configurar Docker para Artifact Registry
         run: gcloud auth configure-docker us-central1-docker.pkg.dev
 
